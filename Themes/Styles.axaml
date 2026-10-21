@@ -1,0 +1,83 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://ActionManager/Themes/Palette.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- карточка -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{StaticResource Brush.Card}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.CardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="Padding" Value="16" />
+    </Style>
+
+    <!-- баннер с проблемой -->
+    <Style Selector="Border.banner">
+        <Setter Property="Background" Value="#3A2A3A" />
+        <Setter Property="BorderBrush" Value="#8A5060" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="14 10" />
+    </Style>
+
+    <!-- типографика -->
+    <Style Selector="TextBlock.h1">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    </Style>
+    <Style Selector="TextBlock.h2">
+        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text}" />
+    </Style>
+    <Style Selector="TextBlock.dim">
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextDim}" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="TextBlock.mini">
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextDim}" />
+        <Setter Property="FontSize" Value="11" />
+    </Style>
+
+    <!-- маленькая кнопка навигации календаря -->
+    <Style Selector="Button.nav">
+        <Setter Property="MinWidth" Value="34" />
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="6 2" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- кнопка опасного действия -->
+    <Style Selector="Button.danger">
+        <Setter Property="Background" Value="#3A2029" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Canceled}" />
+        <Setter Property="BorderBrush" Value="#663041" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#4A2632" />
+    </Style>
+
+    <!-- ячейка календаря -->
+    <Style Selector="Button.daycell">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="MinHeight" Value="76" />
+        <Setter Property="Margin" Value="2" />
+    </Style>
+</Styles>

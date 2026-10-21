@@ -1,0 +1,30 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+artifacts/
+publish/
+[Tt]est[Rr]esults/
+
+# IDE and user-specific settings
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet packages and generated packages
+packages/
+*.nupkg
+*.snupkg
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+Desktop.ini

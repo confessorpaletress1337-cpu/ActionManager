@@ -1,0 +1,205 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ActionManager.ViewModels"
+        x:Class="ActionManager.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ActionManager — планировщик выключений"
+        Width="980" Height="720"
+        MinWidth="900" MinHeight="640"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Brush.Window}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="16">
+
+        <!-- ШАПКА -->
+        <Grid ColumnDefinitions="*,Auto" Margin="0 0 0 12">
+            <StackPanel Orientation="Vertical" Spacing="2">
+                <TextBlock Classes="h1" Text="⚡ ActionManager" />
+                <TextBlock Classes="dim" Text="планировщик выключений · Windows Task Scheduler через библиотеку" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                         IsVisible="{Binding IsChipOk}" Fill="{DynamicResource Brush.Ok}" />
+                <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                         IsVisible="{Binding IsChipWarn}" Fill="{DynamicResource Brush.Warn}" />
+                <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                         IsVisible="{Binding IsChipOff}" Fill="{DynamicResource Brush.TextDim}" />
+                <TextBlock Text="{Binding PlannerChipText}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <!-- БАННЕР ПРОБЛЕМЫ -->
+        <Border Grid.Row="1" Classes="banner" IsVisible="{Binding HasConfigProblem}" Margin="0 0 0 12">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="⚠️" VerticalAlignment="Top" />
+                    <TextBlock Text="{Binding ConfigProblemText}" TextWrapping="Wrap" MaxWidth="640" />
+                </StackPanel>
+                <Button Grid.Column="1" Content="Повторить" Command="{Binding RetryConfigureCommand}"
+                        VerticalAlignment="Top" />
+            </Grid>
+        </Border>
+
+        <!-- КОНТЕНТ: КАЛЕНДАРЬ + БОКОВАЯ ПАНЕЛЬ -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,330" ColumnSpacing="14">
+
+            <!-- КАЛЕНДАРЬ -->
+            <Border Classes="card">
+                <Grid RowDefinitions="Auto,Auto,*">
+                    <Grid ColumnDefinitions="*,Auto,Auto,Auto" Margin="0 0 0 10">
+                        <TextBlock Classes="h2" Text="{Binding Calendar.MonthTitle}" VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Classes="nav" Content="Сегодня" Command="{Binding Calendar.GoToTodayCommand}" Margin="0 0 6 0" />
+                        <Button Grid.Column="2" Classes="nav" Content="＜" Command="{Binding Calendar.PrevMonthCommand}" Margin="0 0 6 0" />
+                        <Button Grid.Column="3" Classes="nav" Content="＞" Command="{Binding Calendar.NextMonthCommand}" />
+                    </Grid>
+
+                    <!-- дни недели -->
+                    <UniformGrid Grid.Row="1" Columns="7" Margin="0 0 0 6">
+                        <TextBlock Classes="mini" Text="Пн" HorizontalAlignment="Center" />
+                        <TextBlock Classes="mini" Text="Вт" HorizontalAlignment="Center" />
+                        <TextBlock Classes="mini" Text="Ср" HorizontalAlignment="Center" />
+                        <TextBlock Classes="mini" Text="Чт" HorizontalAlignment="Center" />
+                        <TextBlock Classes="mini" Text="Пт" HorizontalAlignment="Center" />
+                        <TextBlock Classes="mini" Text="Сб" HorizontalAlignment="Center" />
+                        <TextBlock Classes="mini" Text="Вс" HorizontalAlignment="Center" />
+                    </UniformGrid>
+
+                    <!-- сетка дней -->
+                    <ItemsControl Grid.Row="2" ItemsSource="{Binding Calendar.Cells}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="7" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalendarDayViewModel">
+                                <Button Classes="daycell"
+                                        Command="{Binding SelectCommand}"
+                                        ToolTip.Tip="{Binding ToolTipText}"
+                                        IsEnabled="{Binding IsSelectable}">
+                                    <Panel>
+                                        <Border CornerRadius="12" Background="{DynamicResource Brush.Card2}"
+                                                IsVisible="{Binding IsPast}" />
+                                        <StackPanel Orientation="Vertical" Spacing="6"
+                                                    HorizontalAlignment="Left" VerticalAlignment="Top"
+                                                    Margin="10 8 0 0"
+                                                    IsVisible="{Binding !IsPlaceholder}">
+                                            <!-- число: обычное / зачёркнутое для отменённого -->
+                                            <TextBlock Text="{Binding DayNumber}" FontSize="15" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Brush.Text}"
+                                                       IsVisible="{Binding !IsCanceled}" />
+                                            <TextBlock Text="{Binding DayNumber}" FontSize="15" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource Brush.Text}"
+                                                       TextDecorations="Strikethrough"
+                                                       IsVisible="{Binding IsCanceled}" />
+                                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                                <Ellipse Width="7" Height="7" IsVisible="{Binding IsPlanned}"
+                                                         Fill="{DynamicResource Brush.Ok}" />
+                                                <Ellipse Width="7" Height="7" IsVisible="{Binding IsCanceled}"
+                                                         Fill="{DynamicResource Brush.Canceled}" />
+                                                <Ellipse Width="7" Height="7" IsVisible="{Binding IsOff}"
+                                                         Fill="{DynamicResource Brush.Warn}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <!-- приглушение прошедшего дня -->
+                                        <Border CornerRadius="12" IsHitTestVisible="False"
+                                                Background="#9912141C" IsVisible="{Binding IsPast}" />
+                                        <!-- рамка выделения -->
+                                        <Border CornerRadius="12" BorderThickness="2"
+                                                BorderBrush="{DynamicResource Brush.Accent}"
+                                                IsVisible="{Binding IsSelected}" />
+                                    </Panel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <!-- БОКОВАЯ ПАНЕЛЬ -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel Orientation="Vertical" Spacing="14">
+
+                    <!-- расписание -->
+                    <Border Classes="card">
+                        <StackPanel Orientation="Vertical" Spacing="10">
+                            <TextBlock Classes="h2" Text="Расписание" />
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <TextBlock Text="Выключать в" VerticalAlignment="Center" />
+                                <TimePicker Grid.Column="1"
+                                            SelectedTime="{Binding ShutdownTime, Mode=TwoWay}"
+                                            ClockIdentifier="24HourClock"
+                                            MinWidth="0"
+                                            HorizontalAlignment="Stretch" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBlock Text="Планировщик включён" VerticalAlignment="Center" />
+                                <ToggleSwitch Grid.Column="1"
+                                              IsChecked="{Binding SchedulerEnabled, Mode=TwoWay}"
+                                              OnContent="Вкл"
+                                              OffContent="Выкл" />
+                            </Grid>
+                            <TextBlock Classes="mini"
+                                       Text="каждый день · за 3 минуты до этого Windows даст предупреждение"
+                                       TextWrapping="Wrap" />
+                            <Button Content="Открыть планировщик Windows" Command="{Binding OpenWindowsPlannerCommand}"
+                                    HorizontalAlignment="Left" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- следующее выключение -->
+                    <Border Classes="card">
+                        <StackPanel Orientation="Vertical" Spacing="6">
+                            <TextBlock Classes="dim" Text="СЛЕДУЮЩЕЕ ВЫКЛЮЧЕНИЕ" />
+                            <TextBlock FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap"
+                                       Text="{Binding NextShutdownSummary}" />
+                            <TextBlock Text="{Binding NextShutdownCountdown}" Foreground="{DynamicResource Brush.Accent}" />
+                            <Border Height="1" Background="{DynamicResource Brush.CardBorder}" Margin="0 6 0 2" />
+                            <TextBlock Classes="mini" Text="{Binding LastRunSummary}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- выбранный день -->
+                    <Border Classes="card">
+                        <StackPanel Orientation="Vertical" Spacing="8">
+                            <TextBlock Classes="dim" Text="ВЫБРАННЫЙ ДЕНЬ" />
+                            <TextBlock FontSize="15" FontWeight="SemiBold" Text="{Binding SelectedDayTitle}" />
+                            <TextBlock Classes="mini" Text="{Binding Calendar.SelectedStateText}" TextWrapping="Wrap" />
+                            <Button Content="{Binding SelectedDayActionText}"
+                                    Command="{Binding ToggleSelectedSkipCommand}"
+                                    IsEnabled="{Binding CanToggleSelectedDay}"
+                                    HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </Border>
+
+                    <!-- быстрые действия -->
+                    <Border Classes="card">
+                        <StackPanel Orientation="Vertical" Spacing="10">
+                            <TextBlock Classes="h2" Text="Быстрые действия" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Button Grid.Column="0" Content="🌙 Сон" Command="{Binding SleepNowCommand}"
+                                        HorizontalAlignment="Stretch" />
+                                <Button Grid.Column="1" Content="🛌 Гибернация" Command="{Binding HibernateNowCommand}"
+                                        HorizontalAlignment="Stretch" />
+                                <Button Grid.Column="2" Content="🔒 Блок" Command="{Binding LockNowCommand}"
+                                        HorizontalAlignment="Stretch" />
+                            </Grid>
+                            <Button Classes="danger" Content="{Binding PowerOffButtonText}"
+                                    Command="{Binding PowerOffNowCommand}"
+                                    HorizontalAlignment="Stretch" MinHeight="38" />
+                            <Button Content="Отменить ожидающее выключение"
+                                    Command="{Binding CancelPendingShutdownCommand}"
+                                    HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </Border>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- СТАТУС-БАР -->
+        <TextBlock Grid.Row="3" Classes="mini" Margin="0 12 0 0"
+                   Text="{Binding StatusLogText}" TextTrimming="CharacterEllipsis" />
+    </Grid>
+</Window>

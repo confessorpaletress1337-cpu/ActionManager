@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- палитра: тёмный «полуночный» вариант -->
+    <Color x:Key="Palette.Window">#12141C</Color>
+    <Color x:Key="Palette.Card">#1A2030</Color>
+    <Color x:Key="Palette.Card2">#202638</Color>
+    <Color x:Key="Palette.CardBorder">#2A3146</Color>
+    <Color x:Key="Palette.Text">#E9EDF6</Color>
+    <Color x:Key="Palette.TextDim">#8E97AD</Color>
+    <Color x:Key="Palette.Accent">#7AA2FF</Color>
+    <Color x:Key="Palette.Ok">#4BD37B</Color>
+    <Color x:Key="Palette.Canceled">#FF6B6B</Color>
+    <Color x:Key="Palette.Warn">#FFB35C</Color>
+
+    <SolidColorBrush x:Key="Brush.Window" Color="{StaticResource Palette.Window}" />
+    <SolidColorBrush x:Key="Brush.Card" Color="{StaticResource Palette.Card}" />
+    <SolidColorBrush x:Key="Brush.Card2" Color="{StaticResource Palette.Card2}" />
+    <SolidColorBrush x:Key="Brush.CardBorder" Color="{StaticResource Palette.CardBorder}" />
+    <SolidColorBrush x:Key="Brush.Text" Color="{StaticResource Palette.Text}" />
+    <SolidColorBrush x:Key="Brush.TextDim" Color="{StaticResource Palette.TextDim}" />
+    <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Palette.Accent}" />
+    <SolidColorBrush x:Key="Brush.Ok" Color="{StaticResource Palette.Ok}" />
+    <SolidColorBrush x:Key="Brush.Canceled" Color="{StaticResource Palette.Canceled}" />
+    <SolidColorBrush x:Key="Brush.Warn" Color="{StaticResource Palette.Warn}" />
+</ResourceDictionary>
