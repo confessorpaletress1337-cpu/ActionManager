@@ -68,6 +68,31 @@
         <Setter Property="Background" Value="#4A2632" />
     </Style>
 
+    <Style Selector="Border.poolItem">
+        <Setter Property="Background" Value="{StaticResource Brush.Card2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.CardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Margin" Value="0 0 0 8" />
+    </Style>
+
+    <Style Selector="Border.poolEmpty">
+        <Setter Property="Background" Value="{StaticResource Brush.Card2}" />
+        <Setter Property="BorderBrush" Value="{StaticResource Brush.CardBorder}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="24" />
+    </Style>
+
+    <Style Selector="Button.iconDanger">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Canceled}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8 4" />
+        <Setter Property="MinWidth" Value="30" />
+    </Style>
+
     <!-- ячейка календаря -->
     <Style Selector="Button.daycell">
         <Setter Property="Background" Value="Transparent" />

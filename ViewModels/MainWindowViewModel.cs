@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using ActionManager.Models;
 using ActionManager.Services;
 using Avalonia.Threading;
@@ -18,16 +20,22 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ISystemCommandsService _system;
     private readonly ISchedulerService _scheduler;
+    private readonly ILaunchPoolService _launchPool;
     private readonly IOptionsStore _options;
 
     private bool _initializing;          // подавляем сохранение настроек при первичной загрузке
     private bool _suppressTimeChanged;
     private DispatcherTimer? _confirmTimer;
 
-    public MainWindowViewModel(ISystemCommandsService system, ISchedulerService scheduler, IOptionsStore options)
+    public MainWindowViewModel(
+        ISystemCommandsService system,
+        ISchedulerService scheduler,
+        ILaunchPoolService launchPool,
+        IOptionsStore options)
     {
         _system = system;
         _scheduler = scheduler;
+        _launchPool = launchPool;
         _options = options;
         Calendar = new CalendarViewModel();
         Calendar.SelectionChanged += _ => RefreshSelectedDay();
@@ -36,6 +44,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public CalendarViewModel Calendar { get; }
+    public ObservableCollection<LaunchPoolItemViewModel> LaunchPoolItems { get; } = new();
 
     // --- состояние расписания ---------------------------------------------------
 
@@ -50,6 +59,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _configProblemText = string.Empty;
+
+    // --- рабочий пул ------------------------------------------------------------
+
+    [ObservableProperty]
+    private string _newPoolTarget = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasLaunchPoolItems;
 
     // --- сводки (следующее выключение и т.п.) ---------------------------------------------------
 
@@ -106,6 +123,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             var options = _options.Load();
             ShutdownTime = options.ShutdownTime;
+            LoadLaunchPoolItems(options);
         }
         finally
         {
@@ -113,6 +131,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         EnsureTaskConfigured();
+        RemoveLegacyLaunchPoolTask();
         SchedulerEnabled = ResolveEnabledFromScheduler();
         RefreshAll();
         Log("Запущен. Планировщик Windows читается напрямую через библиотеку.");
@@ -148,6 +167,30 @@ public partial class MainWindowViewModel : ViewModelBase
         return info is { Exists: true, Enabled: true };
     }
 
+    private void RemoveLegacyLaunchPoolTask()
+    {
+        if (TaskSchedulerService.TryDeleteLegacyLaunchPoolTask(out var deleted, out var error))
+        {
+            if (deleted)
+                Log("Старая задача запуска рабочего пула удалена из планировщика Windows.");
+            return;
+        }
+
+        AppLog.Write($"Не удалось удалить старую задачу рабочего пула: {error}");
+    }
+
+    private void LoadLaunchPoolItems(AppOptions options)
+    {
+        LaunchPoolItems.Clear();
+        foreach (var entry in options.LaunchPool)
+        {
+            var item = new LaunchPoolItemViewModel(entry);
+            item.Changed += SaveLaunchPoolItems;
+            LaunchPoolItems.Add(item);
+        }
+        HasLaunchPoolItems = LaunchPoolItems.Count > 0;
+    }
+
     // --- обновление всего ---------------------------------------------------------------
 
     private void RefreshAll()
@@ -155,7 +198,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (!_options.TryLoad(out var options, out var loadError))
         {
             HasConfigProblem = true;
-            ConfigProblemText = $"Не удалось прочитать настройки: {loadError}\nАвтовыключение будет безопасно пропущено.";
+            ConfigProblemText = $"Не удалось прочитать настройки: {loadError}\nАвтоматические действия будут безопасно пропущены.";
         }
         var info = _scheduler.TryGetInfo();
 
@@ -391,6 +434,105 @@ public partial class MainWindowViewModel : ViewModelBase
         EnsureTaskConfigured();
         SchedulerEnabled = ResolveEnabledFromScheduler();
         RefreshAll();
+    }
+
+    public void AddLaunchPoolTarget(string target)
+    {
+        target = target.Trim();
+        if (string.IsNullOrWhiteSpace(target))
+            return;
+
+        if (LaunchPoolItems.Any(item => string.Equals(item.Target, target, StringComparison.OrdinalIgnoreCase)))
+        {
+            Log("Этот элемент уже есть в рабочем пуле.");
+            return;
+        }
+
+        var entry = new LaunchPoolEntry
+        {
+            Name = GuessLaunchItemName(target),
+            Target = target,
+        };
+        var item = new LaunchPoolItemViewModel(entry);
+        item.Changed += SaveLaunchPoolItems;
+        LaunchPoolItems.Add(item);
+        HasLaunchPoolItems = true;
+        NewPoolTarget = string.Empty;
+        SaveLaunchPoolItems();
+        Log($"В рабочий пул добавлено: {entry.Name}.");
+        RefreshAll();
+    }
+
+    [RelayCommand]
+    private void AddTypedPoolTarget()
+    {
+        AddLaunchPoolTarget(NewPoolTarget);
+    }
+
+    [RelayCommand]
+    public void RemoveLaunchPoolItem(LaunchPoolItemViewModel? item)
+    {
+        if (item is null || !LaunchPoolItems.Remove(item))
+            return;
+        item.Changed -= SaveLaunchPoolItems;
+        HasLaunchPoolItems = LaunchPoolItems.Count > 0;
+        SaveLaunchPoolItems();
+        Log($"Из рабочего пула удалено: {item.Name}.");
+        RefreshAll();
+    }
+
+    [RelayCommand]
+    private void LaunchPoolNow()
+    {
+        SaveLaunchPoolItems();
+        var entries = LaunchPoolItems.Select(item => item.Model).ToList();
+        if (!entries.Any(entry => entry.Enabled))
+        {
+            Log("В рабочем пуле нет включённых элементов.");
+            return;
+        }
+
+        var result = _launchPool.Launch(entries);
+        if (result.Success)
+        {
+            Log(result.AlreadyRunning > 0
+                ? $"Рабочий пул: запущено {result.Started}, уже открыто {result.AlreadyRunning}."
+                : $"Рабочий пул запущен: {result.Started} элем.");
+            return;
+        }
+
+        HasConfigProblem = true;
+        ConfigProblemText =
+            $"Запущено: {result.Started}. Уже открыто: {result.AlreadyRunning}. Ошибки:\n" +
+            string.Join("\n", result.Errors);
+        Log($"Рабочий пул: {result.Started} запущено, {result.AlreadyRunning} уже открыто, {result.Errors.Count} не удалось.");
+    }
+
+    private void SaveLaunchPoolItems()
+    {
+        if (_initializing)
+            return;
+        try
+        {
+            var options = _options.Load();
+            options.LaunchPool = LaunchPoolItems.Select(item => item.Model).ToList();
+            _options.Save(options);
+        }
+        catch (Exception ex)
+        {
+            HasConfigProblem = true;
+            ConfigProblemText = $"Не удалось сохранить рабочий пул: {ex.Message}";
+            Log("Изменения рабочего пула не сохранены.");
+        }
+    }
+
+    private static string GuessLaunchItemName(string target)
+    {
+        if (Uri.TryCreate(target, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+            return uri.Host;
+        var trimmed = target.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        var name = Path.GetFileNameWithoutExtension(trimmed);
+        return string.IsNullOrWhiteSpace(name) ? target : name;
     }
 
     [RelayCommand]

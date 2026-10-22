@@ -203,6 +203,47 @@ public sealed class TaskSchedulerService : ISchedulerService
 
     // ---------------------------------------------------------------------------
 
+    /// <summary>
+    /// Удаляет задачу LaunchPool, которую создавали версии с запуском пула по времени.
+    /// Текущий рабочий пул запускается только вручную.
+    /// </summary>
+    public static bool TryDeleteLegacyLaunchPoolTask(out bool deleted, out string error)
+    {
+        const string legacyTaskName = "LaunchPool";
+        var legacyTaskPath = $@"\{FolderName}\{legacyTaskName}";
+        try
+        {
+            using var ts = new TaskService();
+            if (ts.GetTask(legacyTaskPath) is null)
+            {
+                deleted = false;
+                error = string.Empty;
+                return true;
+            }
+
+            var folder = ts.RootFolder.SubFolders.FirstOrDefault(f => f.Name == FolderName);
+            if (folder is null)
+            {
+                deleted = false;
+                error = string.Empty;
+                return true;
+            }
+
+            folder.DeleteTask(legacyTaskName);
+            deleted = true;
+            error = string.Empty;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            deleted = false;
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+
     /// <summary>Человекочитаемое описание кода завершения задачи (LastTaskResult).</summary>
     public static string DescribeResult(int result) => result switch
     {

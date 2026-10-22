@@ -117,10 +117,25 @@ public sealed class JsonOptionsStore : IOptionsStore
     {
         if (options.ShutdownTime < TimeSpan.Zero || options.ShutdownTime >= TimeSpan.FromDays(1))
             throw new JsonException("Время выключения должно находиться в пределах суток.");
-
         options.SkippedDates = (options.SkippedDates ?? new())
             .Distinct()
             .OrderBy(date => date)
+            .ToList();
+
+        options.LaunchPool = (options.LaunchPool ?? new())
+            .Where(entry => entry is not null)
+            .Select(entry =>
+            {
+                if (entry.Id == Guid.Empty)
+                    entry.Id = Guid.NewGuid();
+                entry.Name = entry.Name?.Trim() ?? string.Empty;
+                entry.Target = entry.Target?.Trim() ?? string.Empty;
+                entry.Arguments = entry.Arguments?.Trim() ?? string.Empty;
+                return entry;
+            })
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Target))
+            .GroupBy(entry => entry.Id)
+            .Select(group => group.First())
             .ToList();
     }
 }

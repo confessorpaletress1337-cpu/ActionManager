@@ -16,6 +16,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOptionsStore, JsonOptionsStore>();
         services.AddSingleton<ISystemCommandsService, SystemCommandsService>();
         services.AddSingleton<ISchedulerService, TaskSchedulerService>();
+        services.AddSingleton<ILaunchPoolService, LaunchPoolService>();
 
         // view-модель и окно
         services.AddSingleton<MainWindowViewModel>();
