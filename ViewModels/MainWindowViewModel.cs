@@ -442,17 +442,43 @@ public partial class MainWindowViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(target))
             return;
 
-        if (LaunchPoolItems.Any(item => string.Equals(item.Target, target, StringComparison.OrdinalIgnoreCase)))
+        AddLaunchPoolEntry(new LaunchPoolEntry
+        {
+            Name = GuessLaunchItemName(target),
+            Target = target,
+        });
+    }
+
+    public void AddDotNetProject(string projectPath)
+    {
+        projectPath = Path.GetFullPath(projectPath.Trim());
+        var dotNetPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            "dotnet",
+            "dotnet.exe");
+        if (!File.Exists(dotNetPath))
+            dotNetPath = "dotnet.exe";
+
+        AddLaunchPoolEntry(new LaunchPoolEntry
+        {
+            Name = $"{Path.GetFileNameWithoutExtension(projectPath)} · dotnet run",
+            Target = dotNetPath,
+            Arguments = $"run --project \"{projectPath}\"",
+            WorkingDirectory = Path.GetDirectoryName(projectPath) ?? string.Empty,
+            SkipIfRunning = true,
+        });
+    }
+
+    private void AddLaunchPoolEntry(LaunchPoolEntry entry)
+    {
+        if (LaunchPoolItems.Any(item =>
+                string.Equals(item.Target, entry.Target, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(item.Arguments, entry.Arguments, StringComparison.OrdinalIgnoreCase)))
         {
             Log("Этот элемент уже есть в рабочем пуле.");
             return;
         }
 
-        var entry = new LaunchPoolEntry
-        {
-            Name = GuessLaunchItemName(target),
-            Target = target,
-        };
         var item = new LaunchPoolItemViewModel(entry);
         item.Changed += SaveLaunchPoolItems;
         LaunchPoolItems.Add(item);

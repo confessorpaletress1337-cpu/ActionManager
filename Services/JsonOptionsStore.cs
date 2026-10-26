@@ -131,6 +131,7 @@ public sealed class JsonOptionsStore : IOptionsStore
                 entry.Name = entry.Name?.Trim() ?? string.Empty;
                 entry.Target = entry.Target?.Trim() ?? string.Empty;
                 entry.Arguments = entry.Arguments?.Trim() ?? string.Empty;
+                entry.WorkingDirectory = entry.WorkingDirectory?.Trim() ?? string.Empty;
                 return entry;
             })
             .Where(entry => !string.IsNullOrWhiteSpace(entry.Target))

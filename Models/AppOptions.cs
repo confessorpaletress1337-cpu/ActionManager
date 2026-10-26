@@ -26,5 +26,7 @@ public sealed class LaunchPoolEntry
     public string Name { get; set; } = string.Empty;
     public string Target { get; set; } = string.Empty;
     public string Arguments { get; set; } = string.Empty;
+    public string WorkingDirectory { get; set; } = string.Empty;
+    public bool SkipIfRunning { get; set; } = true;
     public bool Enabled { get; set; } = true;
 }

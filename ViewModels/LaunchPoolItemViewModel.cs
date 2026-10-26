@@ -11,6 +11,8 @@ public partial class LaunchPoolItemViewModel : ViewModelBase
         _name = model.Name;
         _target = model.Target;
         _arguments = model.Arguments;
+        _workingDirectory = model.WorkingDirectory;
+        _skipIfRunning = model.SkipIfRunning;
         _isEnabled = model.Enabled;
     }
 
@@ -25,6 +27,12 @@ public partial class LaunchPoolItemViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _arguments;
+
+    [ObservableProperty]
+    private string _workingDirectory;
+
+    [ObservableProperty]
+    private bool _skipIfRunning;
 
     [ObservableProperty]
     private bool _isEnabled;
@@ -44,6 +52,18 @@ public partial class LaunchPoolItemViewModel : ViewModelBase
     partial void OnArgumentsChanged(string value)
     {
         Model.Arguments = value;
+        Changed?.Invoke();
+    }
+
+    partial void OnWorkingDirectoryChanged(string value)
+    {
+        Model.WorkingDirectory = value;
+        Changed?.Invoke();
+    }
+
+    partial void OnSkipIfRunningChanged(bool value)
+    {
+        Model.SkipIfRunning = value;
         Changed?.Invoke();
     }
 

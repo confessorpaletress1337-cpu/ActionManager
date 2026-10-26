@@ -48,6 +48,24 @@ public partial class MainWindow : Window
             viewModel.AddLaunchPoolTarget(folder.Path.LocalPath);
     }
 
+    private async void BrowseDotNetProject_Click(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Добавить .NET-проект с запуском dotnet run",
+            AllowMultiple = true,
+            FileTypeFilter = new[]
+            {
+                new FilePickerFileType("Проекты .NET") { Patterns = new[] { "*.csproj" } },
+            },
+        });
+
+        if (DataContext is not MainWindowViewModel viewModel)
+            return;
+        foreach (var file in files)
+            viewModel.AddDotNetProject(file.Path.LocalPath);
+    }
+
     private void RemovePoolItem_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is Button { DataContext: LaunchPoolItemViewModel item }
