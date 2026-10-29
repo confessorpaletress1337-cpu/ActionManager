@@ -141,11 +141,14 @@ public partial class MainWindowViewModel : ViewModelBase
     private void EnsureTaskConfigured()
     {
         var info = _scheduler.TryGetInfo();
-        if (info is { Exists: true, ConfigurationCurrent: true } && !info.AccessProblem)
+        var savedTime = ShutdownTime ?? new TimeSpan(19, 0, 0);
+        if (info is { Exists: true, ConfigurationCurrent: true } &&
+            !info.AccessProblem &&
+            info.ShutdownTime == savedTime)
             return;
 
         var enabled = info is { Exists: true, AccessProblem: false } && info.Enabled;
-        if (_scheduler.TryCreateOrUpdate(ShutdownTime ?? new TimeSpan(19, 0, 0), enabled, out var error))
+        if (_scheduler.TryCreateOrUpdate(savedTime, enabled, out var error))
         {
             Log(info is { Exists: true }
                 ? $"Обновлена конфигурация задачи: {_scheduler.TaskDisplayName}."
@@ -202,13 +205,12 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         var info = _scheduler.TryGetInfo();
 
-        // Task Scheduler — источник истины для времени. Если задачу поправили руками,
-        // TimePicker сразу показывает фактическое значение, не перезаписывая его обратно.
-        if (info is { Exists: true, AccessProblem: false, ShutdownTime: { } actualTime }
-            && ShutdownTime != actualTime)
+        // Локальные настройки — источник истины. Task Scheduler служит только будильником
+        // и при расхождении будет восстановлен из сохранённого значения.
+        if (ShutdownTime != options.ShutdownTime)
         {
             _suppressTimeChanged = true;
-            ShutdownTime = actualTime;
+            ShutdownTime = options.ShutdownTime;
             _suppressTimeChanged = false;
         }
 
@@ -230,7 +232,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void RefreshNextShutdown(AppOptions options, SchedulerInfo? info, bool enabled)
     {
-        var time = info?.ShutdownTime ?? options.ShutdownTime;
+        var time = options.ShutdownTime;
 
         if (!enabled || info is not { Exists: true })
         {
@@ -372,34 +374,41 @@ public partial class MainWindowViewModel : ViewModelBase
         if (_initializing || _suppressTimeChanged || value is not { } time)
             return;
 
+        var options = _options.Load();
+        var previousTime = options.ShutdownTime;
+        options.ShutdownTime = time;
+        try
+        {
+            // Сначала сохраняем источник истины. Даже если обновление системной задачи сорвётся,
+            // старый запуск увидит несовпадение времени и безопасно откажется выключать компьютер.
+            _options.Save(options);
+        }
+        catch (Exception ex)
+        {
+            HasConfigProblem = true;
+            ConfigProblemText = $"Не удалось сохранить время в локальных настройках: {ex.Message}";
+            Log("Не удалось сохранить время в локальных настройках.");
+            _suppressTimeChanged = true;
+            ShutdownTime = previousTime;
+            _suppressTimeChanged = false;
+            return;
+        }
+
         if (_scheduler.TryCreateOrUpdate(time, SchedulerEnabled, out var error))
         {
-            var options = _options.Load();
-            options.ShutdownTime = time;
-            try
-            {
-                _options.Save(options);
-                HasConfigProblem = false;
-                Log($"Время выключения обновлено: {time:hh\\:mm}.");
-            }
-            catch (Exception ex)
-            {
-                HasConfigProblem = true;
-                ConfigProblemText = $"Задача обновлена, но сохранить локальные настройки не удалось: {ex.Message}";
-                Log("Не удалось сохранить время в локальных настройках.");
-            }
-            RefreshAll();
+            HasConfigProblem = false;
+            Log($"Время выключения обновлено: {time:hh\\:mm}.");
         }
         else
         {
             HasConfigProblem = true;
-            ConfigProblemText = $"Не удалось обновить время задачи: {error}";
-
-            // откатить выбор в TimePicker, чтобы UI соответствовал реальности
-            _suppressTimeChanged = true;
-            ShutdownTime = _options.Load().ShutdownTime;
-            _suppressTimeChanged = false;
+            ConfigProblemText =
+                $"Время сохранено, но не удалось обновить системную задачу: {error}\n" +
+                "Старая задача не выключит компьютер в неверное время. Нажмите «Повторить», чтобы восстановить расписание.";
+            Log("Время сохранено, но системную задачу обновить не удалось.");
         }
+
+        RefreshAll();
     }
 
     partial void OnHasConfigProblemChanged(bool value)

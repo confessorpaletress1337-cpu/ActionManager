@@ -37,8 +37,7 @@ public sealed class TaskSchedulerService : ISchedulerService
 
     /// <summary>Аргумент, с которым планировщик запускает наш exe в момент срабатывания.</summary>
     public const string ScheduledFireArg = "--scheduled-shutdown";
-    private const string ScheduleVersionArg = "--schedule-v5";
-    public const int ShutdownWarningSeconds = 180;
+    private const string ScheduleVersionArg = "--schedule-v6";
 
     private static string TaskPath => $@"\{FolderName}\{TaskName}";
 
@@ -69,9 +68,9 @@ public sealed class TaskSchedulerService : ISchedulerService
                 Exists: true,
                 Enabled: task.Enabled,
                 State: task.State.ToString(),
-                ShutdownTime: trigger?.StartBoundary.AddSeconds(ShutdownWarningSeconds).TimeOfDay,
+                ShutdownTime: trigger?.StartBoundary.TimeOfDay,
                 NextRun: task.Enabled && rawNextRun != DateTime.MinValue
-                    ? rawNextRun.AddSeconds(ShutdownWarningSeconds)
+                    ? rawNextRun
                     : null,
                 LastRun: task.LastRunTime == DateTime.MinValue ? null : task.LastRunTime,
                 LastResult: task.LastTaskResult,
@@ -89,8 +88,8 @@ public sealed class TaskSchedulerService : ISchedulerService
     // ---------------------------------------------------------------------------
 
     /// <summary>
-    /// Создаёт (или обновляет) ежедневную задачу: за три минуты до time запускается наш exe,
-    /// который уже разбирается — выключать (или пропустить, если день отменён в настройках).
+    /// Создаёт (или обновляет) ежедневную задачу: точно в time запускается наш exe,
+    /// который повторно проверяет настройки и выключает компьютер либо безопасно пропускает действие.
     /// </summary>
     public bool TryCreateOrUpdate(TimeSpan time, bool enabled, out string error)
     {
@@ -103,19 +102,19 @@ public sealed class TaskSchedulerService : ISchedulerService
 
             var def = ts.NewTask();
             def.RegistrationInfo.Description =
-                "ActionManager: ежедневное выключение в интерактивном сеансе с предупреждением за 3 минуты.";
+                "ActionManager: ежедневное выключение точно в сохранённое пользователем время.";
             def.RegistrationInfo.Source = "ActionManager";
 
-            // Интерактивный токен гарантирует, что системное предупреждение shutdown.exe
-            // появится в сеансе вошедшего пользователя, даже когда окно приложения закрыто.
+            // Интерактивный токен позволяет выполнить shutdown.exe в сеансе вошедшего пользователя,
+            // даже когда окно приложения закрыто.
             var userId = $@"{Environment.UserDomainName}\{Environment.UserName}";
             def.Principal.UserId = userId;
             def.Principal.LogonType = TaskLogonType.InteractiveToken;
 
             var trigger = (DailyTrigger)def.Triggers.Add(new DailyTrigger());
-            // Задача срабатывает за три минуты до выбранного времени, чтобы штатное
-            // предупреждение shutdown.exe закончилось ровно в нужный момент.
-            trigger.StartBoundary = DateTime.Today.Add(time).AddSeconds(-ShutdownWarningSeconds);
+            // Задача — только системный будильник: запускается точно в сохранённое время.
+            // Сам exe ещё раз сверит настройки перед немедленным выключением.
+            trigger.StartBoundary = DateTime.Today.Add(time);
             trigger.DaysInterval = 1;
             trigger.Enabled = true;
 

@@ -5,7 +5,7 @@ namespace ActionManager.Models;
 
 /// <summary>
 /// Локальные настройки приложения (хранятся в %LocalAppData%\ActionManager\options.json).
-/// Планировщик выключения живёт в Windows Task Scheduler, а вот "отменённые дни" — здесь.
+/// Настройки — источник истины, а Windows Task Scheduler служит системным будильником.
 /// </summary>
 public sealed class AppOptions
 {

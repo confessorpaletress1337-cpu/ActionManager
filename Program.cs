@@ -67,16 +67,33 @@ internal static class Program
             return 0;
         }
 
-        const int warningSeconds = TaskSchedulerService.ShutdownWarningSeconds;
-        AppLog.Write($"Планировщик сработал — выключение через {warningSeconds} секунд, его можно отменить командой shutdown /a.");
-        var result = new SystemCommandsService().Shutdown(
-            delaySeconds: warningSeconds,
-            message: $"ActionManager: автоматическое выключение через {warningSeconds / 60} минуты. Сохраните работу или отмените выключение в приложении.");
+        if (schedulerInfo.ShutdownTime != options.ShutdownTime)
+        {
+            AppLog.Write(
+                $"Запуск планировщика отклонён: задача настроена на {schedulerInfo.ShutdownTime:hh\\:mm}, " +
+                $"а в настройках сохранено {options.ShutdownTime:hh\\:mm}.");
+            return 4;
+        }
+
+        var now = DateTime.Now;
+        var scheduledFor = DateTime.Today.Add(options.ShutdownTime);
+        var earlyTolerance = TimeSpan.FromSeconds(5);
+        var lateTolerance = TimeSpan.FromMinutes(5);
+        if (now < scheduledFor - earlyTolerance || now > scheduledFor + lateTolerance)
+        {
+            AppLog.Write(
+                $"Запуск планировщика отклонён как несвоевременный: сейчас {now:HH:mm:ss}, " +
+                $"актуальное время выключения {scheduledFor:HH:mm:ss}.");
+            return 5;
+        }
+
+        AppLog.Write("Планировщик сработал в актуальное время — передаём Windows команду немедленного выключения.");
+        var result = new SystemCommandsService().Shutdown();
         if (result.Success)
             return 0;
 
-        AppLog.Write($"Не удалось запланировать выключение: {result.Error}");
-        return 4;
+        AppLog.Write($"Не удалось выключить компьютер: {result.Error}");
+        return 6;
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

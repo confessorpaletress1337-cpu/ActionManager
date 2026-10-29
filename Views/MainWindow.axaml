@@ -143,7 +143,7 @@
                                               OffContent="Выкл" />
                             </Grid>
                             <TextBlock Classes="mini"
-                                       Text="каждый день · за 3 минуты до этого Windows даст предупреждение"
+                                       Text="каждый день · выключение точно в указанное время"
                                        TextWrapping="Wrap" />
                             <Button Content="Открыть планировщик Windows" Command="{Binding OpenWindowsPlannerCommand}"
                                     HorizontalAlignment="Left" />
